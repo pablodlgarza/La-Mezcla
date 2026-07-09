@@ -8,6 +8,7 @@
 */
 
 import { useState, useCallback } from "react";
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import "./App.css";
 
 /* ── Image map ─────────────────────────────────────────────── */
@@ -809,51 +810,79 @@ function PageContact({ onNav, onOpenReg, onOpenLogin }) {
 /* ═══════════════════════════════════════════════════════════════
    APP ROOT
    ═══════════════════════════════════════════════════════════════ */
-export default function App() {
-  const [page,       setPage]      = useState("home");
-  const [showLogin,  setShowLogin] = useState(false);
-  const [showReg,    setShowReg]   = useState(false);
-  const [showIdeaFrm,setIdeaFrm]  = useState(false);
+function AppInner() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [showLogin,   setShowLogin]  = useState(false);
+  const [showReg,     setShowReg]    = useState(false);
+  const [showIdeaFrm, setIdeaFrm]   = useState(false);
 
-  const nav = useCallback(p => { setPage(p); window.scrollTo(0, 0); }, []);
+  const nav = useCallback(p => {
+    navigate(p === "home" ? "/" : "/" + p);
+    window.scrollTo(0, 0);
+  }, [navigate]);
 
-  const PAGES = ["home", "artists", "process", "ideas", "contact"];
+  const isOn = key =>
+    key === "home"
+      ? location.pathname === "/"
+      : location.pathname.startsWith("/" + key);
+
+  const props = {
+    onNav:          nav,
+    onOpenLogin:    () => setShowLogin(true),
+    onOpenReg:      () => setShowReg(true),
+    onOpenIdeaForm: () => setIdeaFrm(true),
+  };
 
   return (
     <>
-      {/* NAV */}
       <nav className="nav">
-        <img className="nav-logo" src={I.logo} alt="La Mezcla" onClick={() => nav("home")} />
+        <img
+          className="nav-logo"
+          src={I.logo}
+          alt="La Mezcla"
+          onClick={() => nav("home")}
+        />
         <div className="nav-links">
           {[
-            { key: "artists", label: "Artists" },
-            { key: "process", label: "The Process" },
-            { key: "ideas",   label: "Ideas" },
+            { key: "artists", label: "Artists"        },
+            { key: "process", label: "The Process"    },
+            { key: "ideas",   label: "Ideas"          },
             { key: "contact", label: "Contact / Join" },
           ].map(t => (
-            <button key={t.key} className={`nav-tab${page === t.key ? " on" : ""}`}
-              onClick={() => nav(t.key)}>{t.label}</button>
+            <button
+              key={t.key}
+              className={`nav-tab${isOn(t.key) ? " on" : ""}`}
+              onClick={() => nav(t.key)}
+            >
+              {t.label}
+            </button>
           ))}
-          <button className="nav-join" onClick={() => setShowReg(true)}>Join the network</button>
+          <button className="nav-join" onClick={() => setShowReg(true)}>
+            Join the network
+          </button>
         </div>
       </nav>
 
-      {/* PAGE ROUTING */}
-      {PAGES.map(p => {
-        if (p !== page) return null;
-        const props = { onNav: nav, onOpenLogin: () => setShowLogin(true), onOpenReg: () => setShowReg(true), onOpenIdeaForm: () => setIdeaFrm(true) };
-        if (p === "home")    return <PageHome    key="home"    {...props} />;
-        if (p === "artists") return <PageArtists key="artists" {...props} />;
-        if (p === "process") return <PageProcess key="process" {...props} />;
-        if (p === "ideas")   return <PageIdeas   key="ideas"   {...props} />;
-        if (p === "contact") return <PageContact key="contact" {...props} />;
-        return null;
-      })}
+      <Routes>
+        <Route path="/"        element={<PageHome    {...props} />} />
+        <Route path="/artists" element={<PageArtists {...props} />} />
+        <Route path="/process" element={<PageProcess {...props} />} />
+        <Route path="/ideas"   element={<PageIdeas   {...props} />} />
+        <Route path="/contact" element={<PageContact {...props} />} />
+      </Routes>
 
-      {/* GLOBAL OVERLAYS */}
-      {showLogin  && <LoginPopup  onClose={() => setShowLogin(false)} onOpenReg={() => { setShowLogin(false); setShowReg(true); }} />}
+      {showLogin   && <LoginPopup    onClose={() => setShowLogin(false)} onOpenReg={() => { setShowLogin(false); setShowReg(true); }} />}
       {showIdeaFrm && <IdeaFormPopup isLoggedIn={false} onClose={() => setIdeaFrm(false)} onOpenReg={() => { setIdeaFrm(false); setShowReg(true); }} />}
-      {showReg    && <RegPanel onClose={() => setShowReg(false)} />}
+      {showReg     && <RegPanel      onClose={() => setShowReg(false)} />}
     </>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppInner />
+    </BrowserRouter>
   );
 }
